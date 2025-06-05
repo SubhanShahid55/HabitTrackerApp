@@ -1,0 +1,160 @@
+﻿@model HabitTrackerApp.Models.Habit
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 animate__animated animate__fadeInUp">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h4 class="mb-0">Create New Habit</h4>
+                </div>
+                <div class="card-body p-4">
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <form asp-action="Create" method="post" id="habitCreateForm">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-bold">Habit Name</label>
+                            <input asp-for="Name" class="form-control form-control-lg" placeholder="e.g. Drink Water, Exercise" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-bold">Description (Optional)</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Describe your habit..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <!-- Frequency Selector -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Habit Frequency</label>
+                            <select id="frequencySelector" class="form-select form-select-lg mb-3">
+                                <option value="everyday">Every Day</option>
+                                <option value="weekdays">Weekdays Only</option>
+                                <option value="weekends">Weekends Only</option>
+                                <option value="custom" selected>Custom Days</option>
+                            </select>
+
+                            <!-- Hidden field for model binding -->
+                            <input type="hidden" name="Days" id="Days" />
+
+                            <!-- Day Checkboxes -->
+                            <div id="dayCheckboxes" class="row g-2">
+                                @foreach (var day in Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>())
+                                {
+                                    <div class="col-md-4">
+                                        <div class="form-check custom-day-checkbox">
+                                            <input type="checkbox"
+                                                   class="day-checkbox form-check-input"
+                                                   value="@((int)day)"
+                                                   id="day_@((int)day)" />
+                                            <label class="form-check-label w-100 text-center p-2 rounded-pill bg-light border day-label" for="day_@((int)day)">
+                                                @day
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Submit & Back -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="submit" class="btn btn-success btn-lg px-4">
+                                <i class="bi bi-plus-circle me-2"></i>Create Habit
+                            </button>
+                            <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="bi bi-arrow-left me-2"></i>Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const frequencySelect = document.getElementById("frequencySelector");
+            const checkboxes = document.querySelectorAll(".day-checkbox");
+            const hiddenDaysInput = document.getElementById("Days");
+
+            function getSelectedDays() {
+                return Array.from(checkboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => parseInt(cb.value));
+            }
+
+            function setDays(days = []) {
+                checkboxes.forEach(cb => {
+                    var value = parseInt(cb.value);
+                    cb.checked = days.includes(value);
+                });
+                updateHiddenInput(days);
+            }
+
+            function updateHiddenInput(days = []) {
+                hiddenDaysInput.value = `[${days.join(',')}]`;
+            }
+
+            function disableAllCheckboxes(disabled) {
+                checkboxes.forEach(cb => cb.disabled = disabled);
+            }
+
+            function handleFrequencyChange() {
+                const selected = frequencySelect.value;
+                let presetDays = [];
+
+                switch (selected) {
+                    case "everyday":
+                        presetDays = [0, 1, 2, 3, 4, 5, 6];
+                        disableAllCheckboxes(true);
+                        break;
+                    case "weekdays":
+                        presetDays = [1, 2, 3, 4, 5];
+                        disableAllCheckboxes(true);
+                        break;
+                    case "weekends":
+                        presetDays = [0, 6];
+                        disableAllCheckboxes(true);
+                        break;
+                    default:
+                        disableAllCheckboxes(false);
+                        presetDays = getSelectedDays();
+                        break;
+                }
+
+                setDays(presetDays);
+                updateHiddenInput(presetDays);
+            }
+
+            // Handle checkbox changes manually
+            checkboxes.forEach(cb => {
+                cb.addEventListener("change", function () {
+                    if (["everyday", "weekdays", "weekends"].includes(frequencySelect.value)) {
+                        this.checked = false; // Prevent manual change when preset is active
+                    }
+                    updateHiddenInput(getSelectedDays());
+                });
+            });
+
+            // Update hidden input before submit
+            document.getElementById("habitCreateForm").addEventListener("submit", function () {
+                updateHiddenInput(getSelectedDays());
+            });
+
+            // Initialize
+            frequencySelect.addEventListener("change", handleFrequencyChange);
+
+            // Set initial state
+            handleFrequencyChange();
+        });
+    </script>
+
+    <!-- Optional: Add animation classes -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+}

@@ -1,0 +1,338 @@
+﻿@model HabitTrackerApp.Models.HomeViewModel
+
+<!-- Welcome Section -->
+<div class="container mt-5 text-center">
+    <h1 class="display-4 fw-bold animate-text">Welcome to <span>Habit Tracker</span></h1>
+    <p class="lead mt-3">Track daily habits, build streaks, and stay motivated.</p>
+</div>
+
+<!-- Motivational Quote Section -->
+<div class="container mt-5">
+    <div class="card bg-light border-0 shadow-sm animate__animated animate__fadeIn">
+        <div class="card-body text-center p-4">
+            <p class="lead" id="motivationalQuote">Loading your daily motivation...</p>
+            <small class="text-muted" id="quoteAuthor">—</small>
+        </div>
+    </div>
+</div>
+
+<!-- Chart Section -->
+<div class="container mt-5 mb-5">
+    <h2 class="mb-4 text-center">Your Habit Statistics</h2>
+    <div class="card shadow-sm border-0 p-4" style="background:rgba(255,255,255,0.85);">
+        <canvas id="habitStreakChart" height="120"></canvas>
+    </div>
+</div>
+
+<!-- Habits Section -->
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">Your Daily Habits</h2>
+    <div class="d-flex justify-content-end mb-3">
+        <a asp-controller="Habits" asp-action="Create" class="btn btn-success btn-lg shadow-sm">
+            <i class="bi bi-plus-circle me-2"></i>Add New Habit
+        </a>
+    </div>
+
+    <!-- Habits Cards -->
+    <div class="row g-4">
+        @if (Model?.Habits != null && Model.Habits.Any())
+        {
+            foreach (var habit in Model.Habits)
+            {
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm hover-shadow @(habit.IsCompleted ? "bg-success bg-opacity-10" : "")">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 class="m-0">@habit.Name</h5>
+                            @{
+                                var days = habit.Days?.OrderBy(d => d).ToList() ?? new List<DayOfWeek>();
+                                string displayText = "";
+                                if (days.Count == 7)
+                                {
+                                    displayText = "Every Day";
+                                }
+                                else if (days.Contains(DayOfWeek.Monday) && days.Contains(DayOfWeek.Friday) && days.Count == 5)
+                                {
+                                    displayText = "Weekdays";
+                                }
+                                else if (days.Contains(DayOfWeek.Saturday) && days.Contains(DayOfWeek.Sunday) && days.Count == 2)
+                                {
+                                    displayText = "Weekends";
+                                }
+                                else
+                                {
+                                    displayText = string.Join(", ", days);
+                                }
+                            }
+                            <span class="badge bg-light text-primary rounded-pill">@displayText</span>
+                        </div>
+                        <div class="card-body">
+                            @if (habit.LastCompletedDate.HasValue && habit.LastCompletedDate.Value.Date == DateTime.Today)
+                            {
+                                <div class="alert alert-success p-2 mb-3 text-center">
+                                    <strong>✅ Completed Today</strong>
+                                </div>
+                            }
+
+                            <p class="card-text text-muted">@habit.Description</p>
+                            <p><strong>Days:</strong> @displayText</p>
+
+                            <p>
+                                <strong>Streak:</strong>
+                                @if (habit.StreakCount >= 7)
+                                {
+                                    <span class="text-success fw-bold">🔥 @habit.StreakCount days</span>
+                                }
+                                else if (habit.StreakCount >= 3)
+                                {
+                                    <span class="text-warning fw-bold">⚡ @habit.StreakCount days</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">@habit.StreakCount days</span>
+                                }
+                            </p>
+
+                            <!-- Completion Toggle -->
+                            <form asp-controller="Habits" asp-action="ToggleComplete" method="post">
+                                <input type="hidden" name="id" value="@habit.Id" />
+                                @Html.AntiForgeryToken()
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                    @(habit.LastCompletedDate.HasValue && habit.LastCompletedDate.Value.Date == DateTime.Today ? "checked" : "")
+                                           onchange="this.form.submit()"
+                                           id="toggle-@habit.Id" />
+                                    <label class="form-check-label" for="toggle-@habit.Id">Mark Complete Today</label>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Edit/Delete Buttons -->
+                        <div class="card-footer d-flex justify-content-between bg-white border-top-0">
+                            <a asp-controller="Habits" asp-action="Edit" asp-route-id="@habit.Id" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                            <form asp-controller="Habits" asp-action="Delete" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@habit.Id" />
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-md-12 text-center">
+                <p class="text-muted">No habits found. Add one to get started!</p>
+            </div>
+        }
+    </div>
+
+    <hr class="my-5" />
+
+    <!-- Motivational Videos Section -->
+
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0 hover-shadow">
+            <img src="https://i.ytimg.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg" class="card-img-top" style="height: 200px;" alt="Video Title">
+            <div class="card-body">
+                <h5>Video Title</h5>
+                <p class="card-text text-muted">Description goes here.</p>
+                <a href="https://youtube.com/watch?v=YOUR_VIDEO_ID" target="_blank" class="btn btn-primary w-100">
+                    <i class="bi bi-youtube me-1"></i> Watch Video
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Animated Gradient Background */
+    body {
+        background: linear-gradient(135deg, #f0f4f8, #e9f5db, #fffde7);
+        background-size: 400% 400%;
+        animation: gradientBG 10s ease infinite;
+        font-family: 'Segoe UI', 'Poppins', sans-serif;
+        padding-top: 70px;
+    }
+
+    @@keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* Chart Canvas Styling */
+    #habitStreakChart {
+        background-color: #ffffffcc; /* semi-transparent white */
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 4px 18px rgba(74, 144, 226, 0.15);
+    }
+
+    /* Animate Text Title */
+    .animate-text span {
+        display: inline-block;
+        color: #4a90e2;
+        animation: bounceIn 1s ease forwards;
+    }
+
+    @@keyframes bounceIn {
+        0% { transform: scale(0); opacity: 0; }
+        60% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); }
+    }
+
+    /* Card Hover Animation */
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    /* Toggle Switch */
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+</style>
+
+@section Scripts {
+    <!-- Load Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"  />
+
+    <!-- Script to fetch motivational quotes every 10 seconds -->
+    <script>
+        let quoteInterval;
+
+        async function fetchMotivationalQuote() {
+            try {
+                const response = await fetch('https://api.api-ninjas.com/v1/quotes',  {
+                    headers: {
+                        'X-Api-Key': 'V7W75PTmtpi4UhLnqjTSyQ==2O4xYXUFFT2mck8c'
+                    }
+                });
+
+                if (!response.ok) throw new Error("Failed to load quote");
+
+                const data = await response.json();
+
+                if (data.length > 0) {
+                    document.getElementById("motivationalQuote").textContent = `"${data[0].quote}"`;
+                    document.getElementById("quoteAuthor").textContent = `— ${data[0].author}`;
+                }
+            } catch (error) {
+                console.error("Error fetching quote:", error);
+                document.getElementById("motivationalQuote").textContent = `"Small wins lead to big success."`;
+                document.getElementById("quoteAuthor").textContent = "— Unknown";
+            }
+        }
+
+        function startMotivationalQuotes() {
+            fetchMotivationalQuote(); // First load
+            quoteInterval = setInterval(fetchMotivationalQuote, 10000); // Every 10 seconds
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            startMotivationalQuotes();
+        });
+    </script>
+
+    <!-- Chart.js Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var hasHabits = @((Model?.Habits != null && Model.Habits.Any()).ToString().ToLower());
+            if (!hasHabits) return;
+
+            var habits = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                Model.Habits.Select(h => new { h.Name, h.StreakCount })
+            ));
+
+            var labels = habits.map(h => h.Name);
+            var streaks = habits.map(h => h.StreakCount);
+
+            function getBarColors(count) {
+                var palette = [
+                    "#4a90e2", "#50e3c2", "#f5a623", "#e94e77", "#7ed957",
+                    "#b97fff", "#ff7f50", "#00b8d9", "#ffb347", "#ff6961",
+                    "#6a89cc", "#38ada9", "#f8a5c2", "#f6e58d"
+                ];
+                return Array.from({ length: count }, (_, i) => palette[i % palette.length]);
+            }
+
+            var barColors = getBarColors(labels.length);
+
+            var ctx = document.getElementById('habitStreakChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Streak Count',
+                        data: streaks,
+                        backgroundColor: barColors,
+                        borderColor: barColors.map(c => c),
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${context.raw} ${context.raw === 1 ? 'day' : 'days'}`
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Habit Streak Progress',
+                            color: "#4a90e2",
+                            font: { size: 22, weight: "bold", family: "'Poppins', sans-serif" },
+                            padding: { top: 10, bottom: 20 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: "#4a4a4a",
+                                font: { size: 15, weight: "bold" }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: "#e0e7ef",
+                                borderDash: [4, 4]
+                            },
+                            ticks: {
+                                stepSize: 1,
+                                color: "#4a4a4a",
+                                font: { size: 14 }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        });
+    </script>
+}

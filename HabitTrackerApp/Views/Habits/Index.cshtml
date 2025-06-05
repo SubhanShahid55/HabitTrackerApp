@@ -1,0 +1,248 @@
+﻿@model IEnumerable<HabitTrackerApp.Models.Habit>
+
+<!-- Welcome Section -->
+<div class="container mt-5 text-center">
+    <h1 class="display-4 fw-bold animate-text">Welcome to <span>Habit Tracker</span></h1>
+    <p class="lead mt-3">Track daily habits, build streaks, and stay motivated.</p>
+</div>
+
+<!-- Chart Section -->
+<div class="container mt-5 mb-5">
+    <h2 class="mb-4 text-center">Your Habit Statistics</h2>
+    <canvas id="habitStreakChart" height="80"></canvas>
+</div>
+
+<!-- Motivational Video Section -->
+<div class="container mt-5 mb-5">
+    <h2 class="mb-4 text-center">Stay Inspired 💪</h2>
+    <div class="ratio ratio-16x9">
+        <iframe src="https://www.youtube.com/embed/ERClHCOF14c?si=CMyBsjQioTCzo2UR"
+                title="Motivational Video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen>
+        </iframe>
+    </div>
+</div>
+
+<!-- Habits Section -->
+<div class="container mt-4">
+    <div class="d-flex justify-content-end mb-3">
+        <a asp-controller="Habits" asp-action="Create" class="btn btn-success btn-lg shadow-sm rounded-pill px-4">
+            <i class="bi bi-plus-circle me-2"></i>Add New Habit
+        </a>
+    </div>
+
+    <!-- Habits Cards -->
+    <div class="row g-4">
+        @if (Model != null && Model.Any())
+        {
+            foreach (var habit in Model)
+            {
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm hover-shadow @(habit.LastCompletedDate.HasValue && habit.LastCompletedDate.Value.Date == DateTime.Today ? "bg-success bg-opacity-10" : "")">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                            <h5 class="m-0">@habit.Name</h5>
+                            @{
+                                var days = habit.Days?.OrderBy(d => d).ToList() ?? new List<DayOfWeek>();
+                                string displayText = days.Count switch
+                                {
+                                    7 => "Every Day",
+                                    5 when days.Contains(DayOfWeek.Monday) && days.Contains(DayOfWeek.Friday) => "Weekdays",
+                                    2 when days.Contains(DayOfWeek.Saturday) && days.Contains(DayOfWeek.Sunday) => "Weekends",
+                                    _ => string.Join(", ", days)
+                                };
+                            }
+                            <span class="badge bg-light text-primary rounded-pill">@displayText</span>
+                        </div>
+                        <div class="card-body p-4">
+                            @if (habit.LastCompletedDate.HasValue && habit.LastCompletedDate.Value.Date == DateTime.Today)
+                            {
+                                <div class="alert alert-success p-2 mb-3 text-center">
+                                    <strong>✅ Completed Today</strong>
+                                </div>
+                            }
+
+                            <p class="card-text text-muted">@habit.Description</p>
+
+                            <p><strong>Days:</strong> @displayText</p>
+
+                            <p>
+                                <strong>Streak:</strong>
+                                @if (habit.StreakCount >= 7)
+                                {
+                                    <span class="text-success fw-bold">🔥 @habit.StreakCount days</span>
+                                }
+                                else if (habit.StreakCount >= 3)
+                                {
+                                    <span class="text-warning fw-bold">⚡ @habit.StreakCount days</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">@habit.StreakCount days</span>
+                                }
+                            </p>
+
+                            <!-- Completion Toggle -->
+                            <form asp-controller="Habits" asp-action="ToggleComplete" method="post">
+                                <input type="hidden" name="id" value="@habit.Id" />
+                                @Html.AntiForgeryToken()
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                    @(habit.LastCompletedDate.HasValue && habit.LastCompletedDate.Value.Date == DateTime.Today ? "checked" : "")
+                                           onchange="this.form.submit()"
+                                           id="toggle-@habit.Id" />
+                                    <label class="form-check-label" for="toggle-@habit.Id">Mark Complete Today</label>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Edit/Delete Buttons -->
+                        <div class="card-footer d-flex justify-content-between bg-white border-top-0 py-3">
+                            <a asp-controller="Habits" asp-action="Edit" asp-route-id="@habit.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                <i class="bi bi-pencil-square me-1"></i>Edit
+                            </a>
+                            <form asp-controller="Habits" asp-action="Delete" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@habit.Id" />
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-md-12 text-center">
+                <p class="text-muted">No habits found. Add one to get started!</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Style Section -->
+<style>
+    body {
+        background: linear-gradient(135deg, #f0f4f8, #e9f5db, #fffde7);
+        background-size: 400% 400%;
+        animation: gradientBG 10s ease infinite;
+        font-family: 'Poppins', sans-serif;
+        padding-top: 70px;
+    }
+
+    @@keyframes gradientBG {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .animate-text span {
+        display: inline-block;
+        color: #4a90e2;
+        animation: bounceIn 1s ease forwards;
+    }
+
+    @@keyframes bounceIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+
+        60% {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .card-footer a,
+    .card-footer button {
+        transition: all 0.3s ease-in-out;
+    }
+
+        .card-footer a:hover,
+        .card-footer button:hover {
+            transform: scale(1.05);
+        }
+</style>
+
+<!-- Script Section -->
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (!@((Model != null && Model.Any()).ToString().ToLower())) return;
+
+            const habits = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Model.Select(h => new { h.Name, h.StreakCount })
+        ));
+
+            const labels = habits.map(h => h.Name);
+            const streaks = habits.map(h => h.StreakCount);
+
+            const ctx = document.getElementById('habitStreakChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Streak Count',
+                        data: streaks,
+                        backgroundColor: '#4a90e2',
+                        borderColor: '#4a90e2',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.raw + (context.raw === 1 ? " day" : " days");
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Habit Streak Progress'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}
