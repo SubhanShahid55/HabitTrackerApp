@@ -66,7 +66,7 @@ This project is licensed under the AGPL-3.0 License. See the [LICENSE](LICENSE) 
 
 ## Contact
 
-For questions or feedback, please reach out to [Your Name](mailto:your.email@example.com).
+For questions or feedback, please reach out to [Muhammad Subhan Shahid](mailto:rajpootsubhan41@gmail.com).
 
 ---
 
